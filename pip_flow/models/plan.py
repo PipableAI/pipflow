@@ -1,4 +1,4 @@
-from typing import List,Any
+from typing import List, Any
 
 from pydantic import BaseModel
 
@@ -20,7 +20,7 @@ class Task(BaseModel):
 
 class Plan(BaseModel):
     tasks: List[Task]
-    
+
     def __str__(self):
         """
         Override the __str__ method to provide a string representation of the Plan.
