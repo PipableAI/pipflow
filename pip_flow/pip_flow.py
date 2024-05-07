@@ -24,7 +24,9 @@ class PipFlow:
         else:
             self._load_model()
 
-    def generate(self, prompt: str, max_new_tokens: int = 500) -> str:
+    def generate(
+        self, prompt: str, max_new_tokens: int = 500, eos_token: str = "doc"
+    ) -> str:
         if self.device == Device.CLOUD:
             payload = {
                 "model_name": self.model_key,
@@ -35,16 +37,17 @@ class PipFlow:
                 method="POST", url=self.url, data=payload, timeout=120
             )
             if response.status_code == 200:
-                return json.loads(response.text)["response"]
+                response = json.loads(response.text)["response"]
             else:
                 raise Exception(f"Error generating response using {self.url}.")
         elif self.device == Device.CUDA:
             inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device.value)
+            print(inputs.input_ids.shape[-1])
             outputs = self.model.generate(**inputs, max_new_tokens=max_new_tokens)
-            res = self.tokenizer.decode(
-                outputs[0][:, inputs.input_ids.shape[-1] :], skip_special_tokens=True
-            )
-            return res
+            response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+        response = response.split(f"<{eos_token}>")[1].split(f"</{eos_token}>")[0]
+        return response
 
     def _load_model(self):
         if self.model is None or self.tokenizer is None:
