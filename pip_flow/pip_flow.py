@@ -32,18 +32,99 @@ class PipFlow:
         self.url = url
         self.functions: List[Function] = []
         self.prompt_templates = {}
-        self.live_prompt = None
         self.last_question = None
         self.last_plan = None
-
+        self.latest_config = {}
+        self.last_base_prompt = None
+        self._base_setup()
         if self.device == Device.CLOUD:
             self.url = url
         else:
             self._load_model()
 
+    def _base_setup(self):
+        default_key = "default"
+        self.prompt_templates[
+            default_key
+        ] = """
+<functions>
+{func_info}
+</functions>
+<json_structure>
+{{
+  "tasks": [
+    {{
+      "task_id": 1,
+      "function_name": "function name",
+      "parameters": [
+        {{
+        "name":"name of this parameter according to annotations.",
+        "value":"value to be passed for this parameter",
+        "dtype":"type annotation of the variable",
+        "description": "An explanation of why this value should be utilized."
+        }},
+        {{
+        "name":"self",
+        "value":"variable name to be passed for this parameter self.",
+        "dtype":"type annotation of the self parameter",
+        "description": "An explanation of why the cariable should be used for this self parameter."
+        }}
+      ],
+      "outputs": ["variable_1"],
+      "description": "some description"
+    }},
+    {{
+      "task_id": 2,
+      "function_name": "function name",
+      "parameters": [
+        {{
+        "name":"self",
+        "value":"variable name to be passed for this parameter self.",
+        "dtype":"type annotation of the self parameter",
+        "description": "An explanation of why the cariable should be used for this self parameter."
+        }},
+        {{,
+        "name":"name of this parameter according to annotations.",
+        "value":"value to be passed for this parameter",
+        "dtype":"type annotation of the variable",
+        "description": "An explanation of why this value should be utilized."
+        }}
+      ],
+      "outputs": ["variable_2"],
+      "description": "some description"
+    }}
+  ]
+}}
+</json_structure>
+<instructions>
+- use self parameter with proper value based on the question.
+- name outputs as variable_1 , variable_2 , variable_3 , variable_4 and more variables in chronological order.
+- give attention to the type annotation of the parameter given while filling values.
+{instructions}
+</instructions>
+<question>
+Given the above functions,
+- Do not give the parameters in json which have null values and default values of the function, only give the sequencial function calls with parameters to execute the below question:
+{question}
+</question>
+"""
+        self.last_base_prompt = self.prompt_templates[default_key]
+
+    def _update_config(self):
+        self.latest_config = {
+            "func_info": str(
+                [
+                    f"""--name:{function.name}\n--annotations:{function.signature}\n--doc:{function.docs}\n\n"""
+                    for function in self.functions
+                ]
+            ),
+            "instructions": "",
+        }
+
     def generate(
         self, prompt: str, max_new_tokens: int = 500, eos_token: str = "doc"
     ) -> str:
+        prompt += f"<{eos_token}>\n"
         if self.device == Device.CLOUD:
             payload = {
                 "model_name": self.model_key,
@@ -100,7 +181,6 @@ class PipFlow:
 <question>
 Document the function above giving the function description , parameter name and description , dtypes , possible param values, default param value and return type.
 </question>
-<doc>
 """
         try:
             response = self.generate(prompt, max_new_tokens, eos_token="doc")
@@ -109,18 +189,6 @@ Document the function above giving the function description , parameter name and
             raise ValueError(f"Unable to generate the code with error: {e}") from e
 
     def register_callables(self, functions: List[callable], generate_docs=False):
-        """
-        Registers a list of callable functions with the planner.
-
-        Args:
-            functions (List[callable]): A list of callable functions to be registered.
-            generate_docs = False (bool): Whether to generate documentation for the functions using the LLM. Defaults to False.
-        Raises:
-            Exception: If there is an error while registering a function. The exception message will include the name of the function and the error message.
-
-        Returns:
-            None
-        """
         for function in functions:
             try:
                 signature = str(inspect.signature(function))
@@ -137,22 +205,27 @@ Document the function above giving the function description , parameter name and
                 self._add_function(signature, docs, name, full_name)
             except Exception as e:
                 print(f"Unable to register function {function} with error {e}.")
+        self._update_config()
 
     def add_plan_template(self, key: str, base_prompt: str):
         self.prompt_templates[key] = base_prompt
 
-    def make_live_prompt(self, key: str, config: dict):
-        base_prompt = self.prompt_templates[key]
-        if "question" in config:
-            self.last_question = config["question"]
-        live_prompt = base_prompt.format_map(modified_dict(**config))
-        self.live_prompt = live_prompt
-        return live_prompt
+    def make_live_prompt(self, key: str = "default", config: dict | None = None):
+        try:
+            self.last_base_prompt = self.prompt_templates[key]
+            if config is not None:
+                self.latest_config.update(config)
+            return "Updated config and base prompt template successfully fetched."
+        except Exception as e:
+            raise KeyError(e)
 
-    def generate_plan(self, max_new_tokens: int = 900) -> Plan:
+    def generate_plan(self, question: str, max_new_tokens: int = 900) -> Plan:
         try:
 
-            live_prompt = self.live_prompt
+            base_prompt = self.last_base_prompt
+            config = self.latest_config
+            config["question"] = question
+            live_prompt = base_prompt.format_map(modified_dict(**config))
             response = self.generate(live_prompt, max_new_tokens, "json")
             response = response.replace("None", "null")
         except Exception as e:
@@ -166,8 +239,13 @@ Document the function above giving the function description , parameter name and
         self.last_plan = plan
         return plan
 
-    def plan_to_code(self, max_new_tokens=600) -> str:
-        plan = self.last_plan
+    def plan_to_code(
+        self, plan: Plan | None = None, question: str = None, max_new_tokens=600
+    ) -> str:
+        if plan is None:
+            plan = self.last_plan
+        if question is None:
+            question = self.last_question
         names = []
         for tasks in plan.tasks:
             names.append(tasks.function_name)
@@ -187,11 +265,10 @@ Document the function above giving the function description , parameter name and
 <question>
 Given the above plan, Just return a small python code that executes the plan using just these exact function calls provided in the plan.
 The question to resolve:
-{self.last_question}
+{question}
 Functions to use:
 {full_names}
 </question>
-<response>
 """
         try:
             response = self.generate(prompt, max_new_tokens, eos_token="response")
