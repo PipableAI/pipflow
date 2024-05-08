@@ -2,6 +2,7 @@ import inspect
 import json
 import sys
 from typing import List
+import pandas as pd
 import requests
 from pip_flow.models.device import Device
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -36,6 +37,7 @@ class PipFlow:
         self.last_plan = None
         self.latest_config = {}
         self.last_base_prompt = None
+        self.train_data = pd.DataFrame(columns=["input", "output"])
         self._base_setup()
         if self.device == Device.CLOUD:
             self.url = url
@@ -110,6 +112,29 @@ Given the above functions,
 """
         self.last_base_prompt = self.prompt_templates[default_key]
 
+    def save_training_data(self, filepath: str = "train.csv"):
+        try:
+            self.train_data.to_csv(filepath)
+            print(f"saved training data to {filepath}")
+        except Exception as e:
+            print(f"error saving training data as {e}")
+
+    def save_templates(self, filepath: str = "templates.json"):
+        try:
+            data = self.prompt_templates
+            with open(filepath, "w+") as json_file:
+                json.dump(data, json_file, indent=4)
+        except Exception as e:
+            print(f"Couldn't save template with error {e}")
+
+    def load_templates(self, filepath: str = "templates.json"):
+        try:
+            with open(filepath, "r") as json_file:
+                loaded_data = json.load(json_file)
+            self.prompt_templates = loaded_data
+        except Exception as e:
+            print(f"Couldn load template with error {e}")
+
     def _update_config(self):
         self.latest_config = {
             "func_info": str(
@@ -142,6 +167,8 @@ Given the above functions,
             inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device.value)
             outputs = self.model.generate(**inputs, max_new_tokens=max_new_tokens)
             response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        df = self.train_data
+        df.loc[len(df)] = {"input": prompt, "output": response}
         response = response.split(f"<{eos_token}>")[1].split(f"</{eos_token}>")[0]
         return response
 
