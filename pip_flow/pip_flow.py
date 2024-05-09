@@ -7,6 +7,7 @@ from typing import List
 import pandas as pd
 import requests
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from IPython.core.display import display, HTML
 
 from pip_flow.models.device import Device
 from pip_flow.models.function import Function
@@ -351,7 +352,7 @@ Document the function above giving the function description , parameter name and
 
             # iframe = f"<iframe srcdoc={html_content} width=700 height=350></iframe>"
             # display(html_content)
-            display(IFrame("network.html", "100%", "200px"))
+            display(HTML(filename="network.html"))
 
             # Display the HTML content
             # HTML(html_content)
