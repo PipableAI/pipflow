@@ -1,15 +1,16 @@
 import inspect
 import json
 import sys
+import warnings
 from typing import List
+
 import pandas as pd
 import requests
-from pip_flow.models.device import Device
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from pip_flow.models.device import Device
 from pip_flow.models.function import Function
 from pip_flow.models.plan import Plan
-
 
 INFERENCE_URL = "https://playground.pipable.ai/infer"
 
@@ -99,7 +100,8 @@ class PipFlow:
 }}
 </json_structure>
 <instructions>
-- use self parameter with proper value based on the question.
+- use self as the param\eter name when passing the object variable to some method.
+- Use names of functions from the list {function_list} while making plans
 - name outputs as variable_1 , variable_2 , variable_3 , variable_4 and more variables in chronological order.
 - give attention to the type annotation of the parameter given while filling values.
 {instructions}
@@ -143,6 +145,7 @@ Given the above functions,
                     for function in self.functions
                 ]
             ),
+            "function_list" : str([f.name for f in self.functions]),
             "instructions": "",
         }
 
@@ -267,11 +270,12 @@ Document the function above giving the function description , parameter name and
         return plan
 
     def visualise_plan(self, plan: Plan | None = None):
+        warnings.warn("Visualisation is not supported in VS code yet.")
         if plan is None:
             plan = self.last_plan
         if "ipykernel" in sys.modules:
+            from IPython.display import HTML, IFrame, display
             from pyvis.network import Network
-            from IPython.display import display, HTML, IFrame
 
             CALL_NODE_SIZE = 20
             CALL_NODE_COLOR = "red"
@@ -386,6 +390,7 @@ Document the function above giving the function description , parameter name and
 {str(plan)}
 </json>
 <instructions>
+- Use try except to produce executable code.
 - Use exact values of parameters in the function calls as given in the tasks of the plan.
 - Make sure that constants and the values of the parameters in the task are used in the code.
 - Also use imports wherever necessary.
@@ -403,7 +408,7 @@ Functions to use:
         try:
             response = self.generate(prompt, max_new_tokens, eos_token="response")
             if "ipykernel" in sys.modules:
-                from IPython.display import display, Markdown
+                from IPython.display import Markdown, display
 
                 display(Markdown(response))
             else:
