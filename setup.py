@@ -15,5 +15,6 @@ setup(
         "transformers",
         "pydantic",
         "pandas",
+        "pyvis",
     ],
 )

@@ -266,6 +266,109 @@ Document the function above giving the function description , parameter name and
         self.last_plan = plan
         return plan
 
+    def visualise_plan(self, plan: Plan | None = None):
+        if plan is None:
+            plan = self.last_plan
+        if "ipykernel" in sys.modules:
+            from pyvis.network import Network
+            from IPython.display import display, HTML, IFrame
+
+            CALL_NODE_SIZE = 20
+            CALL_NODE_COLOR = "red"
+            PARAM_NODE_SIZE = 10
+            PARAM_NODE_COLOR = "blue"
+            FINAL_NODE_SIZE = 10
+            FINAL_NODE_COLOR = "green"
+
+            net = Network(
+                notebook=True, cdn_resources="remote", height="100px", width="100%"
+            )
+
+            for task in plan.tasks:
+                net.add_node(
+                    task.task_id,
+                    label=task.function_name,
+                    size=CALL_NODE_SIZE,
+                    color=CALL_NODE_COLOR,
+                    physics=False,
+                )
+
+            params = []
+            for task in plan.tasks:
+                for param in task.parameters:
+                    params.append((task.task_id, param))
+
+            outputs = []
+            for task in plan.tasks:
+                for output in task.outputs:
+                    outputs.append((task.task_id, output))
+
+            for output in outputs:
+                for param in params:
+                    if param[1].value == output[1]:
+                        net.add_edge(
+                            output[0],
+                            param[0],
+                            label=param[1].name,
+                            arrows="to",
+                            physics=False,
+                        )
+
+            for param in params:
+                if param[1].value not in [output[1] for output in outputs]:
+                    net.add_node(
+                        param[1].value,
+                        label=param[1].name,
+                        size=PARAM_NODE_SIZE,
+                        color=PARAM_NODE_COLOR,
+                        physics=False,
+                    )
+                    net.add_edge(param[1].value, param[0], arrows="to", physics=False)
+
+            for task in plan.tasks:
+                if task.task_id == len(plan.tasks):
+                    for output in task.outputs:
+                        net.add_node(
+                            output,
+                            label=output,
+                            size=FINAL_NODE_SIZE,
+                            color=FINAL_NODE_COLOR,
+                        )
+                        net.add_edge(task.task_id, output, arrows="to")
+
+            file_name = "network.html"
+            net.show(file_name)
+
+            # display(HTML(file_name))
+            with open(file_name, "r") as file:
+                html_content = file.read()
+            # print(html_content)
+            # import IPython
+
+            # iframe = f"<iframe srcdoc={html_content} width=700 height=350></iframe>"
+            # display(html_content)
+            display(IFrame("network.html", "100%", "200px"))
+
+            # Display the HTML content
+            # HTML(html_content)
+
+            # display(HTML(filename="network.html"))
+            # IFrame(src="network.html", width=900, height=600)
+            # legend_html = """
+            # <div style='margin-top: 20px; padding: 10px; border: 1px solid black; width: 300px;'>
+            #     <h3>Legend:</h3>
+            #     <ul>
+            #         <li><span style='color: red;'>●</span> Methods or Functions</li>
+            #         <li><span style='color: blue;'>●</span> Parameters</li>
+            #         <li><span style='color: green;'>●</span> Final Output</li>
+            #     </ul>
+            # </div>
+            # """
+
+            # display(HTML(legend_html))
+        else:
+            print("This method is only available on Interactive Notebooks")
+
     def plan_to_code(
         self, plan: Plan | None = None, question: str = None, max_new_tokens=600
     ) -> str:

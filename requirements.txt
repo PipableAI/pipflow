@@ -1,3 +1,4 @@
 transformers
 requests
 pandas
+pyvis
