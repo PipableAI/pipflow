@@ -7,7 +7,7 @@ from typing import List
 import pandas as pd
 import requests
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from IPython.core.display import display, HTML
+from IPython.core.display import display, Code
 
 from pip_flow.models.device import Device
 from pip_flow.models.function import Function
@@ -409,9 +409,7 @@ Functions to use:
         try:
             response = self.generate(prompt, max_new_tokens, eos_token="response")
             if "ipykernel" in sys.modules:
-                from IPython.display import Markdown, display
-
-                display(Markdown(response))
+                display(Code(data=response, language='numpy'))
             else:
                 return response
         except Exception as e:
