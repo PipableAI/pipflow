@@ -6,8 +6,8 @@ from typing import List
 
 import pandas as pd
 import requests
+from IPython.display import HTML, Code, JSON, display, Markdown
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from IPython.core.display import display, Code
 
 from pip_flow.models.device import Device
 from pip_flow.models.function import Function
@@ -146,7 +146,7 @@ Given the above functions,
                     for function in self.functions
                 ]
             ),
-            "function_list" : str([f.name for f in self.functions]),
+            "function_list": str([f.name for f in self.functions]),
             "instructions": "",
         }
 
@@ -204,10 +204,16 @@ Given the above functions,
         except Exception as e:
             raise Exception(f"Unable to add function {name} with error {e}.")
 
-    def generate_docs(self, function: callable, max_new_tokens=500) -> str:
+    def generate_docs(
+        self, function: callable = None, code: str = None, max_new_tokens=500
+    ) -> str:
+        if function is None and code is None:
+            raise ValueError("Provide either function or code.")
+        if code is None:
+            code = inspect.getsource(function)
         prompt = f"""
 <function_code>
-{inspect.getsource(function)}
+{code}
 </function_code>
 <question>
 Document the function above giving the function description , parameter name and description , dtypes , possible param values, default param value and return type.
@@ -215,6 +221,8 @@ Document the function above giving the function description , parameter name and
 """
         try:
             response = self.generate(prompt, max_new_tokens, eos_token="doc")
+            if "ipykernel" in sys.modules:
+                display(Markdown(data=response))
             return response
         except Exception as e:
             raise ValueError(f"Unable to generate the code with error: {e}") from e
@@ -252,22 +260,22 @@ Document the function above giving the function description , parameter name and
 
     def generate_plan(self, question: str, max_new_tokens: int = 900) -> Plan:
         try:
-
             base_prompt = self.last_base_prompt
             config = self.latest_config
             config["question"] = question
             live_prompt = base_prompt.format_map(modified_dict(**config))
             response = self.generate(live_prompt, max_new_tokens, "json")
-            response = response.replace("None", "null")
         except Exception as e:
             raise ValueError(f"Unable to generate the plan with error: {e}") from e
         try:
             plan = Plan.model_validate_json(response)
+            self.last_plan = plan
+            if "ipykernel" in sys.modules:
+                display(JSON(data=response, expanded=True))
         except Exception as e:
             raise ValueError(
                 f"Unable to parse the response: {response} with error: {e}"
             ) from e
-        self.last_plan = plan
         return plan
 
     def visualise_plan(self, plan: Plan | None = None):
@@ -275,7 +283,6 @@ Document the function above giving the function description , parameter name and
         if plan is None:
             plan = self.last_plan
         if "ipykernel" in sys.modules:
-            from IPython.display import HTML, IFrame, display
             from pyvis.network import Network
 
             CALL_NODE_SIZE = 20
@@ -285,9 +292,7 @@ Document the function above giving the function description , parameter name and
             FINAL_NODE_SIZE = 10
             FINAL_NODE_COLOR = "green"
 
-            net = Network(
-                notebook=True, cdn_resources="remote"
-            )
+            net = Network(notebook=True, cdn_resources="remote")
 
             for task in plan.tasks:
                 net.add_node(
@@ -342,35 +347,10 @@ Document the function above giving the function description , parameter name and
                         net.add_edge(task.task_id, output, arrows="to")
 
             file_name = "network.html"
+
             net.show(file_name)
 
-            # display(HTML(file_name))
-            with open(file_name, "r") as file:
-                html_content = file.read()
-            # print(html_content)
-            # import IPython
-
-            # iframe = f"<iframe srcdoc={html_content} width=700 height=350></iframe>"
-            # display(html_content)
             display(HTML(filename="network.html"))
-
-            # Display the HTML content
-            # HTML(html_content)
-
-            # display(HTML(filename="network.html"))
-            # IFrame(src="network.html", width=900, height=600)
-            # legend_html = """
-            # <div style='margin-top: 20px; padding: 10px; border: 1px solid black; width: 300px;'>
-            #     <h3>Legend:</h3>
-            #     <ul>
-            #         <li><span style='color: red;'>●</span> Methods or Functions</li>
-            #         <li><span style='color: blue;'>●</span> Parameters</li>
-            #         <li><span style='color: green;'>●</span> Final Output</li>
-            #     </ul>
-            # </div>
-            # """
-
-            # display(HTML(legend_html))
         else:
             print("This method is only available on Interactive Notebooks")
 
@@ -409,8 +389,60 @@ Functions to use:
         try:
             response = self.generate(prompt, max_new_tokens, eos_token="response")
             if "ipykernel" in sys.modules:
-                display(Code(data=response, language='numpy'))
+                display(Code(data=response, language="numpy"))
             else:
                 return response
         except Exception as e:
             raise ValueError(f"Unable to generate the code with error: {e}") from e
+
+    def function_call(
+        self,
+        question: str,
+        function: callable = None,
+        docstring: str = None,
+        code: str = None,
+        max_new_tokens: int = 500,
+    ) -> str:
+        """
+        Generates a function call in Python language based on a given question, and either the docstring of the function or a undocuemneted code.
+
+        Args:
+            docstring (str): The documentation string template for the function.
+            question (str): The question prompting the function call generation.
+            code (str, optional): The code of the function. This can be used when the docstring is not present.
+        Returns:
+            str: The Python function call generated based on the question and the provided docstring template.
+        """
+        try:
+            if function is not None:
+                docstring = inspect.getdoc(function)
+            elif code is not None:
+                print("Generating docstring for the code..")
+                docstring = self.generate_docs(code=code, max_new_tokens=max_new_tokens)
+            elif docstring is not None:
+                pass
+            else:
+                raise ValueError("Provide function, docstring or code.")
+            prompt = f"""
+Give a function call in python langugae for the following question:
+<example_response>
+--question: log a curl PUT request for url https://web.io/
+--function_call: log_curl_debug(method='PUT', url = 'https://web.io')
+</example_response>
+<doc>
+{docstring}
+</doc>
+<instruction>
+1. Strictly use named parameters mentioned in the doc to generate function calls.
+2. Only return the response as python parsable string version of function call.
+3. mention the 'self' parameter if required.
+</instruction>
+<question>
+{question}
+</question>"""
+            result = self.generate(prompt=prompt, max_new_tokens=200, eos_token="function_call")
+            if "ipykernel" in sys.modules:
+                display(Code(data=result, language="numpy"))
+            return result
+        except Exception as e:
+            raise RuntimeError(f"An error occurred: {e}")
