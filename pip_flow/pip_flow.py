@@ -6,7 +6,7 @@ from typing import List
 
 import pandas as pd
 import requests
-from IPython.display import HTML, Code, JSON, display, Markdown
+from IPython.display import HTML, Code, Markdown, display
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from pip_flow.models.device import Device
@@ -270,8 +270,7 @@ Document the function above giving the function description , parameter name and
         try:
             plan = Plan.model_validate_json(response)
             self.last_plan = plan
-            if "ipykernel" in sys.modules:
-                display(JSON(data=response, expanded=True))
+            print(plan)
         except Exception as e:
             raise ValueError(
                 f"Unable to parse the response: {response} with error: {e}"
@@ -388,8 +387,10 @@ Functions to use:
 """
         try:
             response = self.generate(prompt, max_new_tokens, eos_token="response")
+            response = response.replace('```python','')
+            response = response.replace('```','')
             if "ipykernel" in sys.modules:
-                display(Code(data=response, language="numpy"))
+                display(Code(data=response, language="css"))
             else:
                 return response
         except Exception as e:
@@ -442,7 +443,7 @@ Give a function call in python langugae for the following question:
 </question>"""
             result = self.generate(prompt=prompt, max_new_tokens=200, eos_token="function_call")
             if "ipykernel" in sys.modules:
-                display(Code(data=result, language="numpy"))
+                display(Code(data=result, language="css"))
             return result
         except Exception as e:
             raise RuntimeError(f"An error occurred: {e}")
