@@ -286,7 +286,7 @@ Document the function above giving the function description , parameter name and
             FINAL_NODE_COLOR = "green"
 
             net = Network(
-                notebook=True, cdn_resources="remote", height="100px", width="100%"
+                notebook=True, cdn_resources="remote"
             )
 
             for task in plan.tasks:
