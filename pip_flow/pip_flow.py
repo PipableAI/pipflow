@@ -403,13 +403,13 @@ Document the function above giving the function description , parameter name and
             from pyvis.network import Network
 
             CALL_NODE_SIZE = 20
-            CALL_NODE_COLOR = "red"
+            CALL_NODE_COLOR = "#9dd2d8"
             PARAM_NODE_SIZE = 10
-            PARAM_NODE_COLOR = "blue"
+            PARAM_NODE_COLOR = "#e2b9db"
             FINAL_NODE_SIZE = 10
-            FINAL_NODE_COLOR = "green"
+            FINAL_NODE_COLOR = "#9dc3e2"
 
-            net = Network(notebook=True, cdn_resources="remote")
+            net = Network(notebook=True, cdn_resources="remote", bgcolor='#222222', font_color='white', directed=True)
 
             for task in plan.tasks:
                 net.add_node(
