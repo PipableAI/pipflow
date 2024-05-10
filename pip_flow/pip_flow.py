@@ -34,7 +34,7 @@ class PipFlow:
         self.url = url
         self.functions: List[Function] = []
         self.prompt_templates = {}
-        self.last_question = None
+        self.last_plan_question = None
         self.last_plan = None
         self.latest_config = {}
         self.last_base_prompt = None
@@ -100,7 +100,7 @@ class PipFlow:
 }}
 </json_structure>
 <instructions>
-- use self as the param\eter name when passing the object variable to some method.
+- use self as the parameter name when passing the object variable to some method.
 - Use names of functions from the list {function_list} while making plans
 - name outputs as variable_1 , variable_2 , variable_3 , variable_4 and more variables in chronological order.
 - give attention to the type annotation of the parameter given while filling values.
@@ -365,6 +365,7 @@ Document the function above giving the function description , parameter name and
         try:
             plan = Plan.model_validate_json(response)
             self.last_plan = plan
+            self.last_plan_question = question
             print(plan)
         except Exception as e:
             raise ValueError(
@@ -477,8 +478,8 @@ Document the function above giving the function description , parameter name and
         Generates executable code based on a given plan and question.
 
         Args:
-            plan (Plan | None, optional): The plan to generate code for. Defaults to None.
-            question (str, optional): The question to resolve. Defaults to None.
+            plan (Plan | None, optional): The plan to generate code for. If None, the last plan generated will be used. Defaults to None.
+            question (str, optional): The question to resolve. If None, the last plan question will be used. Defaults to None.
             max_new_tokens (int, optional): The maximum number of new tokens allowed in the generated code. Defaults to 600.
 
         Returns:
@@ -490,7 +491,7 @@ Document the function above giving the function description , parameter name and
         if plan is None:
             plan = self.last_plan
         if question is None:
-            question = self.last_question
+            question = self.last_plan_question
         names = []
         for tasks in plan.tasks:
             names.append(tasks.function_name)
@@ -502,18 +503,17 @@ Document the function above giving the function description , parameter name and
 </json>
 <instructions>
 - Use try except to produce executable code.
-- Use exact values of parameters in the function calls as given in the tasks of the plan.
 - Make sure that constants and the values of the parameters in the task are used in the code.
 - Also use imports wherever necessary.
 - Add proper comments above each code line.
 - Assign the values to the variables you are using.
 </instructions>
 <question>
-Given the above plan, Just return a small python code that executes the plan using just these exact function calls provided in the plan.
+Functions to use:
+- Use names of functions from the list {str([f.name for f in self.functions])} while writing code.
+Given the above plan and functions to use, Just return a small python code that executes the plan using just these exact function calls provided in the plan.
 The question to resolve:
 {question}
-Functions to use:
-{full_names}
 </question>
 """
         try:
@@ -527,7 +527,7 @@ Functions to use:
         except Exception as e:
             raise ValueError(f"Unable to generate the code with error: {e}") from e
 
-    def function_call(
+    def generate_function_call(
         self,
         question: str,
         function: Callable = None,
