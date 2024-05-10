@@ -2,7 +2,7 @@ import inspect
 import json
 import sys
 import warnings
-from typing import List
+from typing import Callable, List
 
 import pandas as pd
 import requests
@@ -28,6 +28,10 @@ class PipFlow:
         device: str = "cloud",
         url: str = INFERENCE_URL,
     ):
+        """
+        Initializes the PipFlow object with the provided model key, device, and URL.
+        Sets up the device, model key, tokenizer, URL, and initializes other attributes like functions, prompt_templates, last_question, last_plan, latest_config, last_base_prompt, train_data.
+        """
         self.device = Device(device)
         self.model_key = model_key
         self.model = None
@@ -116,6 +120,18 @@ Given the above functions,
         self.last_base_prompt = self.prompt_templates[default_key]
 
     def save_training_data(self, filepath: str = "train.csv"):
+        """
+        Saves the training data to a CSV file.
+
+        Parameters:
+            filepath (str): The path to the CSV file. Defaults to "train.csv".
+
+        Returns:
+            None
+
+        Raises:
+            Exception: If there is an error saving the training data.
+        """
         try:
             self.train_data.to_csv(filepath)
             print(f"saved training data to {filepath}")
@@ -123,6 +139,18 @@ Given the above functions,
             print(f"error saving training data as {e}")
 
     def save_templates(self, filepath: str = "templates.json"):
+        """
+        Saves the prompt templates to a JSON file.
+
+        Parameters:
+            filepath (str): The path to the JSON file. Defaults to "templates.json".
+
+        Returns:
+            None
+
+        Raises:
+            Exception: If there is an error saving the templates.
+        """
         try:
             data = self.prompt_templates
             with open(filepath, "w+") as json_file:
@@ -131,6 +159,18 @@ Given the above functions,
             print(f"Couldn't save template with error {e}")
 
     def load_templates(self, filepath: str = "templates.json"):
+        """
+        Load prompt templates from a JSON file.
+
+        Args:
+            filepath (str, optional): The path to the JSON file. Defaults to "templates.json".
+
+        Raises:
+            Exception: If there is an error loading the templates.
+
+        Returns:
+            None
+        """
         try:
             with open(filepath, "r") as json_file:
                 loaded_data = json.load(json_file)
@@ -151,8 +191,28 @@ Given the above functions,
         }
 
     def generate(
-        self, prompt: str, max_new_tokens: int = 500, eos_token: str = "doc"
+        self, prompt: str, max_new_tokens: int = 500, eos_token: str = "response"
     ) -> str:
+        """
+        Generates a response based on the given prompt using a language model.
+
+        Args:
+            prompt (str): The input prompt for generating the response.
+            max_new_tokens (int, optional): The maximum number of new tokens to generate in the response. Defaults to 500.
+            eos_token (str, optional): The end of sentence token. Defaults to "response".
+
+        Returns:
+            str: The generated response.
+
+        Raises:
+            Exception: If there is an error generating the response using the specified URL.
+
+        Note:
+            - If the device is set to CLOUD, the function sends a POST request to the specified URL with the prompt and max_new_tokens as payload.
+            - If the device is set to CUDA, the function uses the tokenizer and model to generate the response.
+            - The function appends the prompt with the end of sentence token and splits the response to remove the token.
+            - The function adds the prompt and response to the train_data DataFrame.
+        """
         prompt += f"<{eos_token}>\n"
         if self.device == Device.CLOUD:
             payload = {
@@ -205,7 +265,7 @@ Given the above functions,
             raise Exception(f"Unable to add function {name} with error {e}.")
 
     def generate_docs(
-        self, function: callable = None, code: str = None, max_new_tokens=500
+        self, function: Callable = None, code: str = None, max_new_tokens=500
     ) -> str:
         if function is None and code is None:
             raise ValueError("Provide either function or code.")
@@ -227,7 +287,20 @@ Document the function above giving the function description , parameter name and
         except Exception as e:
             raise ValueError(f"Unable to generate the code with error: {e}") from e
 
-    def register_callables(self, functions: List[callable], generate_docs=False):
+    def register_callables(self, functions: List[Callable], generate_docs=False):
+        """
+        Registers a list of callable functions with the planner. If `generate_docs` is set to True,
+        the function will attempt to generate documentation for each function using the `generate_docs`
+        method. If the generation of docs fails, it will print an error message. Each function is added
+        to the planner's list of functions if it is not already present. If a function cannot be registered,
+        an error message is printed. Finally, the configuration is updated.
+
+        :param functions: A list of callable functions to be registered.
+        :type functions: List[Callable]
+        :param generate_docs: A flag indicating whether to generate documentation for each function.
+        :type generate_docs: bool, optional
+        :return: None
+        """
         for function in functions:
             try:
                 signature = str(inspect.signature(function))
@@ -247,9 +320,23 @@ Document the function above giving the function description , parameter name and
         self._update_config()
 
     def add_plan_template(self, key: str, base_prompt: str):
+        """
+        A function to add a plan template based on the provided key and base prompt.
+
+        :param key: A string representing the key for the plan template.
+        :param base_prompt: A string representing the base prompt for the plan template.
+        :return: None
+        """
         self.prompt_templates[key] = base_prompt
 
     def make_live_prompt(self, key: str = "default", config: dict | None = None):
+        """
+        A function to make a live prompt based on the provided key and configuration.
+
+        :param key: A string representing the key for the live prompt.
+        :param config: A dictionary representing the configuration for the live prompt.
+        :return: A message indicating the successful update of the config and base prompt template.
+        """
         try:
             self.last_base_prompt = self.prompt_templates[key]
             if config is not None:
@@ -259,6 +346,19 @@ Document the function above giving the function description , parameter name and
             raise KeyError(e)
 
     def generate_plan(self, question: str, max_new_tokens: int = 900) -> Plan:
+        """
+        Generates a plan based on the given question and maximum number of new tokens.
+
+        Args:
+            question (str): The question for which the plan needs to be generated.
+            max_new_tokens (int, optional): The maximum number of new tokens allowed in the generated plan. Defaults to 900.
+
+        Returns:
+            Plan: The generated plan.
+
+        Raises:
+            ValueError: If the plan generation fails or if the response cannot be parsed.
+        """
         try:
             base_prompt = self.last_base_prompt
             config = self.latest_config
@@ -278,6 +378,28 @@ Document the function above giving the function description , parameter name and
         return plan
 
     def visualise_plan(self, plan: Plan | None = None):
+        """
+        Visualizes a given plan using a pyvis Network.
+
+        Args:
+            plan (Plan | None, optional): The plan to visualize. If None, the last plan generated will be used. Defaults to None.
+
+        Returns:
+            None
+
+        Raises:
+            Warning: If visualization is not supported in the current environment.
+            ValueError: If the plan generation fails or if the response cannot be parsed.
+            KeyError: If the specified key is not found in the prompt templates.
+
+        Notes:
+            - This method will display the Plan on Interactive Notebooks.
+            - Visualization is not supported in VS code yet.
+            - The nodes in the network represent the tasks in the plan, with the task ID as the node label.
+            - The edges in the network represent the dependencies between tasks, with the parameter name as the edge label.
+            - The size and color of the nodes are determined by their type: call nodes, parameter nodes, and final nodes.
+            - The network is displayed in a separate HTML file named "network.html".
+        """
         warnings.warn("Visualisation is not supported in VS code yet.")
         if plan is None:
             plan = self.last_plan
@@ -356,6 +478,20 @@ Document the function above giving the function description , parameter name and
     def plan_to_code(
         self, plan: Plan | None = None, question: str = None, max_new_tokens=600
     ) -> str:
+        """
+        Generates executable code based on a given plan and question.
+
+        Args:
+            plan (Plan | None, optional): The plan to generate code for. Defaults to None.
+            question (str, optional): The question to resolve. Defaults to None.
+            max_new_tokens (int, optional): The maximum number of new tokens allowed in the generated code. Defaults to 600.
+
+        Returns:
+            str: The generated executable code that executes the plan using the exact function calls provided in the plan.
+
+        Raises:
+            ValueError: If unable to generate the code with the given plan and question.
+        """
         if plan is None:
             plan = self.last_plan
         if question is None:
@@ -387,8 +523,8 @@ Functions to use:
 """
         try:
             response = self.generate(prompt, max_new_tokens, eos_token="response")
-            response = response.replace('```python','')
-            response = response.replace('```','')
+            response = response.replace("```python", "")
+            response = response.replace("```", "")
             if "ipykernel" in sys.modules:
                 display(Code(data=response, language="css"))
             else:
@@ -399,7 +535,7 @@ Functions to use:
     def function_call(
         self,
         question: str,
-        function: callable = None,
+        function: Callable = None,
         docstring: str = None,
         code: str = None,
         max_new_tokens: int = 500,
@@ -441,7 +577,9 @@ Give a function call in python langugae for the following question:
 <question>
 {question}
 </question>"""
-            result = self.generate(prompt=prompt, max_new_tokens=200, eos_token="function_call")
+            result = self.generate(
+                prompt=prompt, max_new_tokens=200, eos_token="function_call"
+            )
             if "ipykernel" in sys.modules:
                 display(Code(data=result, language="css"))
             return result
