@@ -36,8 +36,8 @@ class PipFlow:
         self.prompt_templates = {}
         self.last_plan_question = None
         self.last_plan = None
-        self.latest_config = {}
-        self.last_base_prompt = None
+        self.latest_configs = {}
+        self.latest_base_prompt = None
         self.train_data = pd.DataFrame(columns=["input", "output"])
         self._base_setup()
         if self.device == Device.CLOUD:
@@ -112,7 +112,7 @@ Given the above functions,
 {question}
 </question>
 """
-        self.last_base_prompt = self.prompt_templates[default_key]
+        self.latest_base_prompt = self.prompt_templates[default_key]
 
     def save_training_data(self, filepath: str = "train.csv"):
         """
@@ -174,7 +174,7 @@ Given the above functions,
             print(f"Couldn load template with error {e}")
 
     def _update_config(self):
-        self.latest_config = {
+        self.latest_configs = {
             "func_info": str(
                 [
                     f"""--name:{function.name}\n--annotations:{function.signature}\n--doc:{function.docs}\n\n"""
@@ -282,7 +282,7 @@ Document the function above giving the function description , parameter name and
         except Exception as e:
             raise ValueError(f"Unable to generate the code with error: {e}") from e
 
-    def register_callables(self, functions: List[Callable], generate_docs=False):
+    def add_callables(self, functions: List[Callable], generate_docs=False):
         """
         Registers a list of callable functions with the planner. If `generate_docs` is set to True,
         the function will attempt to generate documentation for each function using the `generate_docs`
@@ -333,10 +333,10 @@ Document the function above giving the function description , parameter name and
         :return: A message indicating the successful update of the config and base prompt template.
         """
         try:
-            self.last_base_prompt = self.prompt_templates[key]
+            self.latest_base_prompt = self.prompt_templates[key]
             if config is not None:
-                self.latest_config.update(config)
-            return "Updated config and base prompt template successfully fetched."
+                self.latest_configs.update(config)
+            return "Updated config and base prompt template successfully."
         except Exception as e:
             raise KeyError(e)
 
@@ -355,8 +355,8 @@ Document the function above giving the function description , parameter name and
             ValueError: If the plan generation fails or if the response cannot be parsed.
         """
         try:
-            base_prompt = self.last_base_prompt
-            config = self.latest_config
+            base_prompt = self.latest_base_prompt
+            config = self.latest_configs
             config["question"] = question
             live_prompt = base_prompt.format_map(modified_dict(**config))
             response = self.generate(live_prompt, max_new_tokens, "json")
@@ -557,10 +557,6 @@ The question to resolve:
                 raise ValueError("Provide function, docstring or code.")
             prompt = f"""
 Give a function call in python langugae for the following question:
-<example_response>
---question: log a curl PUT request for url https://web.io/
---function_call: log_curl_debug(method='PUT', url = 'https://web.io')
-</example_response>
 <doc>
 {docstring}
 </doc>
@@ -580,7 +576,52 @@ Give a function call in python langugae for the following question:
             return result
         except Exception as e:
             raise RuntimeError(f"An error occurred: {e}")
+    
 
+    def generate_sql(
+        self,
+        schema: str,
+        question: str,
+        instructions: str = None,
+        examples: str = None,
+        max_new_tokens: int = 400,
+    ) -> str:
+        """
+        Generate SQL queries based on the provided schema and question.
+
+        Args:
+            schema (str): The schema for the SQL query.
+            question (str): The question related to the SQL query.
+            instructions (str, optional): Additional instructions for generating the SQL query. Defaults to None.
+            examples (str, optional): An examples for generating the SQL query. Defaults to None.
+
+        Returns:
+            str: The generated SQL query.
+
+        Raises:
+            ValueError: If unable to generate the SQL query using the model.
+
+        """
+        try:
+            prompt = "Generate simple SQL queries from the schema mentioned for the following questions."
+
+            if instructions:
+                prompt += f"\n<instructions>{instructions}</instructions>"
+
+            if examples:
+                prompt += f"\n<example>{examples}</example>"
+
+            prompt += f"""
+            <schema>{schema}</schema>
+            <question>{question}</question>
+            """
+            resposne = self.generate(prompt, max_new_tokens, "sql")
+            resposne = resposne.replace("<p>", "").replace("</p>", "")
+            return resposne
+
+        except Exception as e:
+            message = f"Unable to generate the SQL query using model with error: {e}"
+            raise ValueError(message) from e
 
 class modified_dict(dict):
     def __missing__(self, key):
