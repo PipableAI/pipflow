@@ -617,6 +617,9 @@ Give a function call in python langugae for the following question:
             """
             resposne = self.generate(prompt, max_new_tokens, "sql")
             resposne = resposne.replace("<p>", "").replace("</p>", "")
+            
+            if "ipykernel" in sys.modules:
+                display(Code(data=resposne, language="css"))
             return resposne
 
         except Exception as e:
