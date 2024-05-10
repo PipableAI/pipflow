@@ -24,8 +24,8 @@ class modified_dict(dict):
 class PipFlow:
     def __init__(
         self,
-        model_key: str,
-        device: str,
+        model_key: str = "PipableAI/pip-code-bandit",
+        device: str = "cloud",
         url: str = INFERENCE_URL,
     ):
         self.device = Device(device)
