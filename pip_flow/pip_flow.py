@@ -16,11 +16,6 @@ from pip_flow.models.plan import Plan
 INFERENCE_URL = "https://playground.pipable.ai/infer"
 
 
-class modified_dict(dict):
-    def __missing__(self, key):
-        return f"{{{key}}}"
-
-
 class PipFlow:
     def __init__(
         self,
@@ -585,3 +580,17 @@ Give a function call in python langugae for the following question:
             return result
         except Exception as e:
             raise RuntimeError(f"An error occurred: {e}")
+
+
+class modified_dict(dict):
+    def __missing__(self, key):
+        """
+        Return a string representation of the missing key in the dictionary.
+
+        Parameters:
+            key (Any): The key that is missing from the dictionary.
+
+        Returns:
+            str: The string representation of the missing key in the format "{{key}}".
+        """
+        return f"{{{key}}}"
