@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="UTF-8") as f:
     long_description = f.read()
 
 setup(
-    name="pip_flow",
+    name="pipflow",
     version=__version__,
     packages=find_packages(),
     long_description=long_description,
