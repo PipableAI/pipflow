@@ -326,10 +326,10 @@ Document the function above giving the function description , parameter name and
 
     def freeze_template(self, key: str = "default", config: dict | None = None):
         """
-        A function to make a live prompt based on the provided key and configuration.
+        A function to update the variables based on the provided key for prompt and configuration.
 
-        :param key: A string representing the key for the live prompt.
-        :param config: A dictionary representing the configuration for the live prompt.
+        :param key: A string representing the key for the prompt.
+        :param config: A dictionary representing the configuration of variables for the prompt.
         :return: A message indicating the successful update of the config and base prompt template.
         """
         try:
