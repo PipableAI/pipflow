@@ -324,7 +324,7 @@ Document the function above giving the function description , parameter name and
         """
         self.prompt_templates[key] = base_prompt
 
-    def make_live_prompt(self, key: str = "default", config: dict | None = None):
+    def freeze_template(self, key: str = "default", config: dict | None = None):
         """
         A function to make a live prompt based on the provided key and configuration.
 
