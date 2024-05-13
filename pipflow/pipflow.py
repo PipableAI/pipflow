@@ -9,9 +9,9 @@ import requests
 from IPython.display import HTML, Code, Markdown, display
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from pip_flow.models.device import Device
-from pip_flow.models.function import Function
-from pip_flow.models.plan import Plan
+from pipflow.models.device import Device
+from pipflow.models.function import Function
+from pipflow.models.plan import Plan
 
 INFERENCE_URL = "https://playground.pipable.ai/infer"
 

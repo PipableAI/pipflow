@@ -1,4 +1,4 @@
-from pip_flow.pip_flow import (
+from pipflow.pipflow import (
     PipFlow,
 )
 
