@@ -181,7 +181,7 @@ Given the above functions,
                     for function in self.functions
                 ]
             ),
-            "function_list": str([f.full_name for f in self.functions]),
+            "function_list": str([f.name for f in self.functions]),
             "instructions": "",
         }
 
@@ -507,16 +507,14 @@ Document the function above giving the function description , parameter name and
 {str(plan)}
 </json>
 <instructions>
-- Use try except to produce executable code.
-- Make sure that constants and the values of the parameters in the task are used in the code.
-- Also use imports wherever necessary.
+- Use try except everywhere to produce executable code.
+- Also use correct imports wherever necessary.
 - Add proper comments above each code line.
-- Assign the values to the variables you are using.
 </instructions>
 <question>
 Functions to use:
 - Use only the required functions from the list {str([x.full_name for x in self.functions])} while writing code.
-Given the above plan and functions to use, Just return a small python code that executes the plan using just these exact function calls provided in the plan.
+Given the above plan and functions to use, Just return a small python code that executes the plan and below question.
 The question to resolve:
 {question}
 </question>
