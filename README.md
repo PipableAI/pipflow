@@ -109,13 +109,12 @@ Generate SQL queries based on the provided schema and question.
 - `examples` (str, optional): An examples for generating the SQL query.
 - `max_new_tokens` (int, optional): The maximum number of new tokens allowed in the generated SQL query.
 
-#### `parse_config(data: str, question: str, eos_token: str, max_new_tokens: int = 300) -> str`
+#### `parse_data_to_json(data: str, question: str, max_new_tokens: int = 300) -> str`
 
-Parses the configuration data and generates a response based on the given data and question.
+Parses the configuration data to json format and generates a json response based on the given data and question.
 
 - `data` (str): The configuration data to parse.
 - `question` (str): The question related to the configuration data.
-- `eos_token` (str): The end of sentence token.
 - `max_new_tokens` (int, optional): The maximum number of new tokens allowed in the generated response.
 
 For more details, refer to the [API Reference](#api-reference).

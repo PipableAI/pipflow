@@ -502,7 +502,6 @@ Document the function above giving the function description , parameter name and
         for tasks in plan.tasks:
             names.append(tasks.function_name)
 
-        full_names = [x.full_name for x in self.functions if x.name in names]
         prompt = f"""
 <json>
 {str(plan)}
@@ -516,7 +515,7 @@ Document the function above giving the function description , parameter name and
 </instructions>
 <question>
 Functions to use:
-- Use names of functions from the list {str([f.name for f in self.functions])} while writing code.
+- Use names of functions from the list {str([x.full_name for x in self.functions])} while writing code.
 Given the above plan and functions to use, Just return a small python code that executes the plan using just these exact function calls provided in the plan.
 The question to resolve:
 {question}
@@ -631,11 +630,11 @@ Give a function call in python langugae for the following question:
             message = f"Unable to generate the SQL query using model with error: {e}"
             raise ValueError(message) from e
 
-    def parse_config(
-        self, data: str, question: str, eos_token: str, max_new_tokens: int = 300
+    def parse_data_to_json(
+        self, data: str, question: str, max_new_tokens: int = 300
     ) -> str:
         """
-        Parses the configuration data and generates a response based on the given data and question.
+        Parses the configuration data to json format and generates a json response based on the given data and question.
 
         Args:
             data (str): The configuration data to parse.
@@ -654,7 +653,7 @@ Give a function call in python langugae for the following question:
             <question>{question}</question>
             """
             response = self.generate(
-                prompt, max_new_tokens=max_new_tokens, eos_token=eos_token
+                prompt, max_new_tokens=max_new_tokens, eos_token="json"
             )
             return response
         except Exception as e:
