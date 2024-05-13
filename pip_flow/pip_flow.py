@@ -101,7 +101,7 @@ class PipFlow:
 </json_structure>
 <instructions>
 - use self as the parameter name when passing the object variable to some method.
-- Use names of functions from the list {function_list} while making plans
+- Use only the requeried functions from the list {function_list} while making plans.
 - name outputs as variable_1 , variable_2 , variable_3 , variable_4 and more variables in chronological order.
 - give attention to the type annotation of the parameter given while filling values.
 {instructions}
@@ -515,7 +515,7 @@ Document the function above giving the function description , parameter name and
 </instructions>
 <question>
 Functions to use:
-- Use names of functions from the list {str([x.full_name for x in self.functions])} while writing code.
+- Use only the required functions from the list {str([x.full_name for x in self.functions])} while writing code.
 Given the above plan and functions to use, Just return a small python code that executes the plan using just these exact function calls provided in the plan.
 The question to resolve:
 {question}
