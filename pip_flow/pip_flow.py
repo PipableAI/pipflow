@@ -409,7 +409,13 @@ Document the function above giving the function description , parameter name and
             FINAL_NODE_SIZE = 10
             FINAL_NODE_COLOR = "#9dc3e2"
 
-            net = Network(notebook=True, cdn_resources="remote", bgcolor='#222222', font_color='white', directed=True)
+            net = Network(
+                notebook=True,
+                cdn_resources="remote",
+                bgcolor="#222222",
+                font_color="white",
+                directed=True,
+            )
 
             for task in plan.tasks:
                 net.add_node(
@@ -576,7 +582,6 @@ Give a function call in python langugae for the following question:
             return result
         except Exception as e:
             raise RuntimeError(f"An error occurred: {e}")
-    
 
     def generate_sql(
         self,
@@ -617,7 +622,7 @@ Give a function call in python langugae for the following question:
             """
             resposne = self.generate(prompt, max_new_tokens, "sql")
             resposne = resposne.replace("<p>", "").replace("</p>", "")
-            
+
             if "ipykernel" in sys.modules:
                 display(Code(data=resposne, language="css"))
             return resposne
@@ -625,6 +630,36 @@ Give a function call in python langugae for the following question:
         except Exception as e:
             message = f"Unable to generate the SQL query using model with error: {e}"
             raise ValueError(message) from e
+
+    def parse_config(
+        self, data: str, question: str, eos_token: str, max_new_tokens: int = 300
+    ) -> str:
+        """
+        Parses the configuration data and generates a response based on the given data and question.
+
+        Args:
+            data (str): The configuration data to parse.
+            question (str): The question related to the configuration data.
+            eos_token (str): The end of sentence token.
+
+        Returns:
+            str: The generated response based on the parsed data and question.
+
+        Raises:
+            ValueError: If unable to parse the data with the specified error.
+        """
+        try:
+            prompt = f"""
+            <file>{data}</file>
+            <question>{question}</question>
+            """
+            response = self.generate(
+                prompt, max_new_tokens=max_new_tokens, eos_token=eos_token
+            )
+            return response
+        except Exception as e:
+            raise ValueError(f"Unable to parse the data with error: {e}") from e
+
 
 class modified_dict(dict):
     def __missing__(self, key):
