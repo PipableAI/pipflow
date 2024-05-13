@@ -25,6 +25,7 @@ To get started with PipFlow, follow these steps:
 
 ## Example Usage
 
+For detailed use of library visit [Pip Flow Examples](https://colab.research.google.com/drive/10av3SxFf0Psx_IkmZbcUhiVznStV5pVS?usp=sharing).
 
 ```python
 from pip_flow import PipFlow
