@@ -525,8 +525,7 @@ The question to resolve:
             response = response.replace("```", "")
             if "ipykernel" in sys.modules:
                 display(Code(data=response, language="css"))
-            else:
-                return response
+            return response
         except Exception as e:
             raise ValueError(f"Unable to generate the code with error: {e}") from e
 
