@@ -181,7 +181,7 @@ Given the above functions,
                     for function in self.functions
                 ]
             ),
-            "function_list": str([f.name for f in self.functions]),
+            "function_list": str([f.full_name for f in self.functions]),
             "instructions": "",
         }
 
