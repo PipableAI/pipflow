@@ -449,14 +449,17 @@ Document the function above giving the function description , parameter name and
 
             for param in params:
                 if param[1].value not in [output[1] for output in outputs]:
+                    if param[1].value is None:
+                        continue
+                    value = str(param[1].value)
                     net.add_node(
-                        param[1].value,
+                        value,
                         label=param[1].name,
                         size=PARAM_NODE_SIZE,
                         color=PARAM_NODE_COLOR,
                         physics=False,
                     )
-                    net.add_edge(param[1].value, param[0], arrows="to", physics=False)
+                    net.add_edge(value, param[0], arrows="to", physics=False)
 
             for task in plan.tasks:
                 if task.task_id == len(plan.tasks):
