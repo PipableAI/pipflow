@@ -302,10 +302,12 @@ Document the function above giving the function description , parameter name and
                 docs = function.__doc__
                 if _isproperty(function):
                     display_text = f"""
+                    
 ---
 # Please Enter the name of the property with docs :
 {docs}
 ---
+
 """
                     if "ipykernel" in sys.modules:
                         display(Markdown(data=display_text))
