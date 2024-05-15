@@ -506,17 +506,18 @@ Document the function above giving the function description , parameter name and
             names.append(tasks.function_name)
 
         prompt = f"""
-<json>
+<plan>
 {str(plan)}
-</json>
+</plan>
 <instructions>
 - Use try except everywhere to produce executable code.
+- Try to use the function calls provided in the plan.
 - Also use correct imports wherever necessary.
 - Add proper comments above each code line.
 </instructions>
 <question>
 Functions to use:
-- Use only the required functions from the list {str([x.full_name for x in self.functions])} while writing code.
+- Use the functions from the list {str([x.full_name for x in self.functions])} while writing code.
 Given the above plan and functions to use, Just return a small python code that executes the plan and below question.
 The question to resolve:
 {question}
