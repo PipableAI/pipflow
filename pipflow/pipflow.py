@@ -12,6 +12,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from pipflow.models.device import Device
 from pipflow.models.function import Function
 from pipflow.models.plan import Plan
+from pipflow.utils.library_utils import _isproperty
 
 INFERENCE_URL = "https://playground.pipable.ai/infer"
 
@@ -298,8 +299,21 @@ Document the function above giving the function description , parameter name and
         """
         for function in functions:
             try:
-                signature = str(inspect.signature(function))
                 docs = function.__doc__
+                if _isproperty(function):
+                    display_text = f"""
+# Please Enter the name of the property with docs :
+{docs}
+                    """
+                    if "ipykernel" in sys.modules:
+                        display(Markdown(data=display_text))
+                    name = input("Property Name : ")
+                    signature = "(self: Any)"
+                    full_name = name
+                else:
+                    signature = str(inspect.signature(function))
+                    name = function.__name__
+                    full_name = function.__module__ + "." + function.__qualname__
                 if generate_docs:
                     try:
                         docs = self.generate_docs(function)
@@ -307,8 +321,7 @@ Document the function above giving the function description , parameter name and
                         print(
                             f"Unable to generate docs for function using model. Error :{e}"
                         )
-                name = function.__name__
-                full_name = function.__module__ + "." + function.__qualname__
+                
                 self._add_function(signature, docs, name, full_name)
             except Exception as e:
                 print(f"Unable to register function {function} with error {e}.")
