@@ -62,17 +62,11 @@ class PipFlow:
       "function_name": "function name",
       "parameters": [
         {{
-        "name":"name of this parameter according to annotations.",
-        "value":"value to be passed for this parameter",
+        "name":"parameter name",
+        "value":"exact value to be passed for this parameter",
         "dtype":"type annotation of the variable",
         "description": "An explanation of why this value should be utilized."
         }},
-        {{
-        "name":"self",
-        "value":"variable name to be passed for this parameter self.",
-        "dtype":"type annotation of the self parameter",
-        "description": "An explanation of why the cariable should be used for this self parameter."
-        }}
       ],
       "outputs": ["variable_1"],
       "description": "some description"
@@ -82,14 +76,8 @@ class PipFlow:
       "function_name": "function name",
       "parameters": [
         {{
-        "name":"self",
-        "value":"variable name to be passed for this parameter self.",
-        "dtype":"type annotation of the self parameter",
-        "description": "An explanation of why the cariable should be used for this self parameter."
-        }},
-        {{,
-        "name":"name of this parameter according to annotations.",
-        "value":"value to be passed for this parameter",
+        "name":"parameter name",
+        "value":"exact value to be passed for this parameter",
         "dtype":"type annotation of the variable",
         "description": "An explanation of why this value should be utilized."
         }}
@@ -101,7 +89,7 @@ class PipFlow:
 }}
 </json_structure>
 <instructions>
-- use self as the parameter name when passing the object variable to some method.
+- use self as the parameter name if mentioned in the function annotation for some task.
 - Use only the requeried functions from the list {function_list} while making plans.
 - name outputs as variable_1 , variable_2 , variable_3 , variable_4 and more variables in chronological order.
 - give attention to the type annotation of the parameter given while filling values.
