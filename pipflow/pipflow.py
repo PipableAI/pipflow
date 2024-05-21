@@ -260,7 +260,11 @@ Given the above functions,
 {code}
 </function_code>
 <question>
-Document the function above giving the function description , parameter name and description , dtypes , possible param values, default param value and return type.
+Document the function above , and include the following information:
+- function description 
+- parameter name, description, dtypes and default values
+- possible parameter values
+- return type.
 </question>
 """
         try:
@@ -519,6 +523,7 @@ Document the function above giving the function description , parameter name and
 - Try to use the function calls provided in the plan.
 - Also use correct imports wherever necessary.
 - Add proper comments above each code line.
+- In the code do not shouw th e outputs, just give executable python code.
 </instructions>
 <question>
 Functions to use:
